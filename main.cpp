@@ -1,81 +1,100 @@
+// main.cpp
 #include <iostream>
 #include <string>
-
 using namespace std;
 
-// --- Prototipos (funciones que están en otros .cpp) ---
-// Usuarios
-void crearUsuario();
-void listarUsuarios();
-bool autenticarUsuario(const string& nombre, const string& contrasena);
+// Prototipos de funciones (definidas en otros archivos)
+void inicializarUsuariosDemo();
+string autenticarYObtenerRol(const string& nombre, const string& contrasena);
 
-// Envios
-void crearEnvio();
-void listarEnvios();
-void listarEnviosPorUsuario(const string& nombre);
+// Menús por rol
+void menuAdmin(const string& usuarioActual);
+void menuControlador(const string& usuarioActual);
+void menuPiloto(const string& usuarioActual);
+void menuCliente(const string& usuarioActual);
 
-// Admin
-void reporteResumen();
-void asignarEnvioAdmin();
+// Funciones de envio
+int crearPedido(const string& cliente, const string& direccion, float peso, const string& metodoPago);
+void mostrarResumenUltimoPedido();
+void listarPedidos();
+void listarUsuariosSimple();
 
 int main() {
+    inicializarUsuariosDemo();
+
     int opcion;
     bool salir = false;
 
     while (!salir) {
-        cout << "\n===== ENVIOS GARANTIZADOS S.A. (CONSOLa) =====\n";
-        cout << "1. Registrar usuario\n";
-        cout << "2. Listar usuarios\n";
-        cout << "3. Crear solicitud de envio\n";
-        cout << "4. Listar todos los envios\n";
-        cout << "5. Listar envios por usuario\n";
-        cout << "6. Iniciar sesion (usuario) - para ver sus envios\n";
-        cout << "7. Menu admin (reportes y asignar)\n";
+        cout << "=====================================\n";
+        cout << "      MENU PRINCIPAL DEL SISTEMA     \n";
+        cout << "=====================================\n";
+        cout << "1. Registrar nuevo pedido (sin login)\n";
+        cout << "2. Ver resumen del ultimo pedido\n";
+        cout << "3. Vista Administrador (login)\n";
+        cout << "4. Vista Controlador (login)\n";
+        cout << "5. Vista Piloto (login)\n";
+        cout << "6. Vista Cliente (login)\n";
+        cout << "7. Listar usuarios de prueba\n";
         cout << "0. Salir\n";
         cout << "Seleccione una opcion: ";
         cin >> opcion;
-        cin.ignore(); // limpiar newline
+        cin.ignore();
+
+        if (opcion == 1) {
+            string cliente, direccion, metodo;
+            float peso;
+            cout << "Nombre cliente: "; getline(cin, cliente);
+            cout << "Direccion: "; getline(cin, direccion);
+            cout << "Peso (libras): "; cin >> peso; cin.ignore();
+            cout << "Metodo de pago: "; getline(cin, metodo);
+            int id = crearPedido(cliente, direccion, peso, metodo);
+            cout << "Pedido creado con ID: " << id << "\n";
+            continue;
+        } else if (opcion == 2) {
+            mostrarResumenUltimoPedido();
+            continue;
+        }
 
         switch (opcion) {
-            case 1:
-                crearUsuario();
-                break;
-            case 2:
-                listarUsuarios();
-                break;
-            case 3:
-                crearEnvio();
-                break;
-            case 4:
-                listarEnvios();
-                break;
-            case 5: {
-                string nombre;
-                cout << "Ingrese nombre de usuario para listar sus envios: ";
-                getline(cin, nombre);
-                listarEnviosPorUsuario(nombre);
+            case 3: { // Admin
+                string u, p;
+                cout << "Usuario: "; getline(cin, u);
+                cout << "Contrasena: "; getline(cin, p);
+                string rol = autenticarYObtenerRol(u, p);
+                if (rol == "admin") menuAdmin(u);
+                else cout << "Credenciales invalidas o no es admin.\n";
                 break;
             }
-            case 6: {
-                string nombre, pass;
-                cout << "Usuario: ";
-                getline(cin, nombre);
-                cout << "Contrasena: ";
-                getline(cin, pass);
-                if (autenticarUsuario(nombre, pass)) {
-                    cout << "Login correcto. Envios del usuario:\n";
-                    listarEnviosPorUsuario(nombre);
-                } else {
-                    cout << "Credenciales invalidas.\n";
-                }
+            case 4: { // Controlador
+                string u, p;
+                cout << "Usuario: "; getline(cin, u);
+                cout << "Contrasena: "; getline(cin, p);
+                string rol = autenticarYObtenerRol(u, p);
+                if (rol == "controlador") menuControlador(u);
+                else cout << "Credenciales invalidas o no es controlador.\n";
+                break;
+            }
+            case 5: { // Piloto
+                string u, p;
+                cout << "Usuario: "; getline(cin, u);
+                cout << "Contrasena: "; getline(cin, p);
+                string rol = autenticarYObtenerRol(u, p);
+                if (rol == "piloto") menuPiloto(u);
+                else cout << "Credenciales invalidas o no es piloto.\n";
+                break;
+            }
+            case 6: { // Cliente
+                string u, p;
+                cout << "Usuario: "; getline(cin, u);
+                cout << "Contrasena: "; getline(cin, p);
+                string rol = autenticarYObtenerRol(u, p);
+                if (rol == "cliente") menuCliente(u);
+                else cout << "Credenciales invalidas o no es cliente.\n";
                 break;
             }
             case 7:
-                cout << "\n--- Menu Admin ---\n";
-                reporteResumen();
-                cout << "¿Desea asignar un envio ahora? (1=si / 0=no): ";
-                int r; cin >> r; cin.ignore();
-                if (r == 1) asignarEnvioAdmin();
+                listarUsuariosSimple();
                 break;
             case 0:
                 salir = true;

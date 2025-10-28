@@ -1,84 +1,191 @@
+// envio.cpp
 #include <iostream>
 #include <vector>
 #include <string>
-
 using namespace std;
 
-// Estructura para envio
-struct Envio {
-    int id;
-    string cliente;     // nombre de usuario que solicita
-    string direccion;
-    string descripcion;
-    string estado;      // "Pendiente", "Asignado", "En Transito", "Entregado"
+/*
+  Aquí están las estructuras y los datos globales que usan
+  todos los módulos. Todo en memoria (vectors).
+*/
+
+// Estructuras
+struct Usuario {
+    string nombre;
+    string contrasena;
+    string rol; // "admin", "controlador", "piloto", "cliente"
 };
 
-// almacenamiento en memoria
-static vector<Envio> envios;
+struct Pedido {
+    int id;
+    string cliente;
+    string direccion;
+    float peso; // libras
+    string metodoPago;
+    float total;
+    string estado; // "Inicial", "En curso", "Finalizado"
+    string pilotoAsignado; // nombre del piloto o "" si no asignado
+};
+
+// Datos globales
+static vector<Usuario> usuarios;
+static vector<Pedido> pedidos;
 static int siguienteId = 1;
 
-// Prototipo de función que usa envio para validar usuario (está definido en usuario.cpp)
-// Declaramos para poder usarlo sin header
-bool autenticarUsuario(const string& nombre, const string& contrasena);
+// Tarifas configurables
+static float tarifaBase = 30.0f;        // Q30 por defecto
+static float limiteLibras = 25.0f;      // umbral en libras
+static float precioPorLibraExtra = 5.0f; // Q5 por libra extra
 
-// Crear solicitud de envio
-void crearEnvio() {
-    Envio e;
-    e.id = siguienteId++;
-    cout << "\n=== Crear solicitud de envio ===\n";
-    cout << "Nombre de usuario (cliente): ";
-    getline(cin, e.cliente);
-    if (e.cliente.empty()) {
-        cout << "Cliente no puede estar vacio.\n";
-        return;
-    }
-    cout << "Direccion de recoleccion: ";
-    getline(cin, e.direccion);
-    cout << "Descripcion del paquete: ";
-    getline(cin, e.descripcion);
-
-    e.estado = "Pendiente";
-    envios.push_back(e);
-    cout << "✅ Solicitud creada. ID = " << e.id << " Estado = " << e.estado << "\n";
+// Inicializar usuarios de prueba (si no se ha hecho)
+void inicializarUsuariosDemo() {
+    if (!usuarios.empty()) return;
+    usuarios.push_back({"admin", "123", "admin"});
+    usuarios.push_back({"controlador", "123", "controlador"});
+    usuarios.push_back({"piloto", "123", "piloto"});
+    usuarios.push_back({"cliente", "123", "cliente"});
 }
 
-// Listar todos los envios
-void listarEnvios() {
-    cout << "\n=== Lista de envios ===\n";
-    if (envios.empty()) {
-        cout << "No hay envios registrados.\n";
+// Agregar usuario (simple)
+bool agregarUsuario(const string& nombre, const string& contrasena, const string& rol) {
+    for (const auto &u : usuarios) if (u.nombre == nombre) return false;
+    usuarios.push_back({nombre, contrasena, rol});
+    return true;
+}
+
+// Autenticar y devolver rol (vacío si falla)
+string autenticarYObtenerRol(const string& nombre, const string& contrasena) {
+    for (const auto &u : usuarios) {
+        if (u.nombre == nombre && u.contrasena == contrasena) return u.rol;
+    }
+    return "";
+}
+
+// Calcular precio simple
+float calcularPrecio(float peso) {
+    if (peso <= limiteLibras) return tarifaBase;
+    float extra = peso - limiteLibras;
+    return tarifaBase + (extra * precioPorLibraExtra);
+}
+
+// Crear pedido y devolver su ID
+int crearPedido(const string& cliente, const string& direccion, float peso, const string& metodoPago) {
+    Pedido p;
+    p.id = siguienteId++;
+    p.cliente = cliente;
+    p.direccion = direccion;
+    p.peso = peso;
+    p.metodoPago = metodoPago;
+    p.total = calcularPrecio(peso);
+    p.estado = "Inicial";
+    p.pilotoAsignado = "";
+    pedidos.push_back(p);
+    return p.id;
+}
+
+// Listar todos los pedidos
+void listarPedidos() {
+    if (pedidos.empty()) {
+        cout << "No hay pedidos registrados.\n";
         return;
     }
-    for (const auto &e : envios) {
-        cout << "ID: " << e.id
-             << " | Cliente: " << e.cliente
-             << " | Direccion: " << e.direccion
-             << " | Estado: " << e.estado << "\n    Desc: " << e.descripcion << "\n";
+    for (const auto &p : pedidos) {
+        cout << "ID: " << p.id
+             << " | Cliente: " << p.cliente
+             << " | Peso: " << p.peso
+             << " | Total: Q" << p.total
+             << " | Estado: " << p.estado
+             << " | Piloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n"
+             << "    Direccion: " << p.direccion << "\n"
+             << "    Pago: " << p.metodoPago << "\n";
     }
 }
 
-// Listar envios por usuario
-void listarEnviosPorUsuario(const string& nombre) {
-    cout << "\n=== Envios de " << nombre << " ===\n";
+// Listar pedidos de un cliente
+void listarPedidosPorCliente(const string& cliente) {
     bool found = false;
-    for (const auto &e : envios) {
-        if (e.cliente == nombre) {
+    for (const auto &p : pedidos) {
+        if (p.cliente == cliente) {
             found = true;
-            cout << "ID: " << e.id
-                 << " | Direccion: " << e.direccion
-                 << " | Estado: " << e.estado << "\n    Desc: " << e.descripcion << "\n";
+            cout << "ID: " << p.id
+                 << " | Peso: " << p.peso
+                 << " | Total: Q" << p.total
+                 << " | Estado: " << p.estado
+                 << " | Piloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n";
         }
     }
-    if (!found) cout << "No se encontraron envios para ese usuario.\n";
+    if (!found) cout << "No se encontraron pedidos para " << cliente << ".\n";
 }
 
-// Cambiar estado de un envio (usado por admin)
-bool cambiarEstadoEnvio(int id, const string& nuevoEstado) {
-    for (auto &e : envios) {
-        if (e.id == id) {
-            e.estado = nuevoEstado;
+// Listar pedidos asignados a un piloto
+void listarPedidosPorPiloto(const string& piloto) {
+    bool found = false;
+    for (const auto &p : pedidos) {
+        if (p.pilotoAsignado == piloto) {
+            found = true;
+            cout << "ID: " << p.id
+                 << " | Cliente: " << p.cliente
+                 << " | Peso: " << p.peso
+                 << " | Estado: " << p.estado
+                 << " | Total: Q" << p.total << "\n"
+                 << "    Direccion: " << p.direccion << "\n";
+        }
+    }
+    if (!found) cout << "No hay pedidos asignados al piloto " << piloto << ".\n";
+}
+
+// Asignar pedido a piloto (pone estado "En curso")
+bool asignarPedidoA(int id, const string& piloto) {
+    for (auto &p : pedidos) {
+        if (p.id == id) {
+            p.pilotoAsignado = piloto;
+            p.estado = "En curso";
             return true;
         }
     }
     return false;
+}
+
+// Cambiar estado de pedido
+bool cambiarEstadoPedido(int id, const string& nuevoEstado) {
+    for (auto &p : pedidos) {
+        if (p.id == id) {
+            p.estado = nuevoEstado;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Mostrar resumen del último pedido creado
+void mostrarResumenUltimoPedido() {
+    if (pedidos.empty()) {
+        cout << "No hay pedidos para mostrar.\n";
+        return;
+    }
+    const Pedido &p = pedidos.back();
+    cout << "Resumen del ultimo pedido (ID " << p.id << ")\n";
+    cout << "Cliente: " << p.cliente << "\nDireccion: " << p.direccion << "\nPeso: " << p.peso
+         << "\nTotal: Q" << p.total << "\nEstado: " << p.estado
+         << "\nPiloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n";
+}
+
+// Configuración de tarifas (set/get)
+void setTarifaBase(float t) { tarifaBase = t; }
+void setLimiteLibras(float l) { limiteLibras = l; }
+void setPrecioPorLibraExtra(float p) { precioPorLibraExtra = p; }
+
+float getTarifaBase() { return tarifaBase; }
+float getLimiteLibras() { return limiteLibras; }
+float getPrecioPorLibraExtra() { return precioPorLibraExtra; }
+
+// Listar usuarios simples (nombre + rol)
+void listarUsuariosSimple() {
+    if (usuarios.empty()) {
+        cout << "No hay usuarios.\n";
+        return;
+    }
+    for (const auto &u : usuarios) {
+        cout << "- " << u.nombre << " (" << u.rol << ")\n";
+    }
 }
