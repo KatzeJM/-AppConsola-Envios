@@ -19,6 +19,7 @@ Luego, ejecuta el siguiente comando en tu terminal:
 ```bash
 g++ *.cpp -o main.exe
 
+```
 
 | Parte      | Descripción                                                                                      |
 | ---------- | ------------------------------------------------------------------------------------------------ |
