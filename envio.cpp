@@ -5,11 +5,11 @@
 using namespace std;
 
 /*
-  Aquí están las estructuras y los datos globales que usan
-  todos los módulos. Todo en memoria (vectors).
+  Estructuras y datos globales compartidos por todos los modulos.
+  Todo en memoria (vectors).
 */
 
-// Estructuras
+// ====== Estructuras ======
 struct Usuario {
     string nombre;
     string contrasena;
@@ -20,24 +20,32 @@ struct Pedido {
     int id;
     string cliente;
     string direccion;
-    float peso; // libras
+    float peso;           // libras
     string metodoPago;
     float total;
-    string estado; // "Inicial", "En curso", "Finalizado"
+    string estado;        // "Inicial", "En curso", "Finalizado"
     string pilotoAsignado; // nombre del piloto o "" si no asignado
 };
 
-// Datos globales
+// ====== Datos globales ======
 static vector<Usuario> usuarios;
 static vector<Pedido> pedidos;
 static int siguienteId = 1;
 
 // Tarifas configurables
-static float tarifaBase = 30.0f;        // Q30 por defecto
-static float limiteLibras = 25.0f;      // umbral en libras
+static float tarifaBase = 30.0f;         // Q30 por defecto
+static float limiteLibras = 25.0f;       // umbral en libras
 static float precioPorLibraExtra = 5.0f; // Q5 por libra extra
 
-// Inicializar usuarios de prueba (si no se ha hecho)
+// ====== Utilidades locales de impresión (solo estético) ======
+static void printHeader(const string& title) {
+    string barra(title.size() + 8, '=');
+    cout << barra << "\n"
+         << "   " << title << "\n"
+         << barra << "\n";
+}
+
+// ====== Usuarios ======
 void inicializarUsuariosDemo() {
     if (!usuarios.empty()) return;
     usuarios.push_back({"admin", "123", "admin"});
@@ -46,14 +54,14 @@ void inicializarUsuariosDemo() {
     usuarios.push_back({"cliente", "123", "cliente"});
 }
 
-// Agregar usuario (simple)
 bool agregarUsuario(const string& nombre, const string& contrasena, const string& rol) {
-    for (const auto &u : usuarios) if (u.nombre == nombre) return false;
+    for (const auto &u : usuarios) {
+        if (u.nombre == nombre) return false;
+    }
     usuarios.push_back({nombre, contrasena, rol});
     return true;
 }
 
-// Autenticar y devolver rol (vacío si falla)
 string autenticarYObtenerRol(const string& nombre, const string& contrasena) {
     for (const auto &u : usuarios) {
         if (u.nombre == nombre && u.contrasena == contrasena) return u.rol;
@@ -61,14 +69,14 @@ string autenticarYObtenerRol(const string& nombre, const string& contrasena) {
     return "";
 }
 
-// Calcular precio simple
+// ====== Tarifas / Cálculo ======
 float calcularPrecio(float peso) {
     if (peso <= limiteLibras) return tarifaBase;
     float extra = peso - limiteLibras;
     return tarifaBase + (extra * precioPorLibraExtra);
 }
 
-// Crear pedido y devolver su ID
+// ====== Pedidos (CRUD y vistas) ======
 int crearPedido(const string& cliente, const string& direccion, float peso, const string& metodoPago) {
     Pedido p;
     p.id = siguienteId++;
@@ -83,8 +91,8 @@ int crearPedido(const string& cliente, const string& direccion, float peso, cons
     return p.id;
 }
 
-// Listar todos los pedidos
 void listarPedidos() {
+    printHeader("LISTA DE PEDIDOS");
     if (pedidos.empty()) {
         cout << "No hay pedidos registrados.\n";
         return;
@@ -92,7 +100,7 @@ void listarPedidos() {
     for (const auto &p : pedidos) {
         cout << "ID: " << p.id
              << " | Cliente: " << p.cliente
-             << " | Peso: " << p.peso
+             << " | Peso: " << p.peso << " lb"
              << " | Total: Q" << p.total
              << " | Estado: " << p.estado
              << " | Piloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n"
@@ -101,14 +109,14 @@ void listarPedidos() {
     }
 }
 
-// Listar pedidos de un cliente
 void listarPedidosPorCliente(const string& cliente) {
+    printHeader("MIS PEDIDOS");
     bool found = false;
     for (const auto &p : pedidos) {
         if (p.cliente == cliente) {
             found = true;
             cout << "ID: " << p.id
-                 << " | Peso: " << p.peso
+                 << " | Peso: " << p.peso << " lb"
                  << " | Total: Q" << p.total
                  << " | Estado: " << p.estado
                  << " | Piloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n";
@@ -117,15 +125,15 @@ void listarPedidosPorCliente(const string& cliente) {
     if (!found) cout << "No se encontraron pedidos para " << cliente << ".\n";
 }
 
-// Listar pedidos asignados a un piloto
 void listarPedidosPorPiloto(const string& piloto) {
+    printHeader("PEDIDOS ASIGNADOS AL PILOTO");
     bool found = false;
     for (const auto &p : pedidos) {
         if (p.pilotoAsignado == piloto) {
             found = true;
             cout << "ID: " << p.id
                  << " | Cliente: " << p.cliente
-                 << " | Peso: " << p.peso
+                 << " | Peso: " << p.peso << " lb"
                  << " | Estado: " << p.estado
                  << " | Total: Q" << p.total << "\n"
                  << "    Direccion: " << p.direccion << "\n";
@@ -134,7 +142,6 @@ void listarPedidosPorPiloto(const string& piloto) {
     if (!found) cout << "No hay pedidos asignados al piloto " << piloto << ".\n";
 }
 
-// Asignar pedido a piloto (pone estado "En curso")
 bool asignarPedidoA(int id, const string& piloto) {
     for (auto &p : pedidos) {
         if (p.id == id) {
@@ -146,7 +153,6 @@ bool asignarPedidoA(int id, const string& piloto) {
     return false;
 }
 
-// Cambiar estado de pedido
 bool cambiarEstadoPedido(int id, const string& nuevoEstado) {
     for (auto &p : pedidos) {
         if (p.id == id) {
@@ -157,20 +163,23 @@ bool cambiarEstadoPedido(int id, const string& nuevoEstado) {
     return false;
 }
 
-// Mostrar resumen del último pedido creado
 void mostrarResumenUltimoPedido() {
+    printHeader("RESUMEN DEL ULTIMO PEDIDO");
     if (pedidos.empty()) {
         cout << "No hay pedidos para mostrar.\n";
         return;
     }
     const Pedido &p = pedidos.back();
-    cout << "Resumen del ultimo pedido (ID " << p.id << ")\n";
-    cout << "Cliente: " << p.cliente << "\nDireccion: " << p.direccion << "\nPeso: " << p.peso
-         << "\nTotal: Q" << p.total << "\nEstado: " << p.estado
-         << "\nPiloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n";
+    cout << "ID: " << p.id << "\n"
+         << "Cliente: " << p.cliente << "\n"
+         << "Direccion: " << p.direccion << "\n"
+         << "Peso: " << p.peso << " lb\n"
+         << "Total: Q" << p.total << "\n"
+         << "Estado: " << p.estado << "\n"
+         << "Piloto: " << (p.pilotoAsignado.empty() ? "Sin asignar" : p.pilotoAsignado) << "\n";
 }
 
-// Configuración de tarifas (set/get)
+// ====== Set/Get de tarifas ======
 void setTarifaBase(float t) { tarifaBase = t; }
 void setLimiteLibras(float l) { limiteLibras = l; }
 void setPrecioPorLibraExtra(float p) { precioPorLibraExtra = p; }
@@ -179,8 +188,9 @@ float getTarifaBase() { return tarifaBase; }
 float getLimiteLibras() { return limiteLibras; }
 float getPrecioPorLibraExtra() { return precioPorLibraExtra; }
 
-// Listar usuarios simples (nombre + rol)
+// ====== Listar usuarios (simple) ======
 void listarUsuariosSimple() {
+    printHeader("USUARIOS REGISTRADOS");
     if (usuarios.empty()) {
         cout << "No hay usuarios.\n";
         return;

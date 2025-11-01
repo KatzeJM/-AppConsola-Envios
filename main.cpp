@@ -1,7 +1,40 @@
 // main.cpp
 #include <iostream>
 #include <string>
+#include <limits>
 using namespace std;
+
+// ===== Utilidades locales =====
+static void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    cout << "\x1B[2J\x1B[H";
+#endif
+}
+
+static void pauseEnter(const string& msg = "Presione ENTER para continuar...") {
+    cout << "\n" << msg;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+static void header(const string& title) {
+    string barra(title.size() + 8, '=');
+    cout << barra << "\n"
+         << "   " << title << "\n"
+         << barra << "\n";
+}
+
+static int readInt(const string& prompt) {
+    for (;;) {
+        cout << prompt;
+        string s;
+        if (!getline(cin, s)) return 0;
+        try { return stoi(s); }
+        catch (...) { cout << "Entrada invalida. Intente de nuevo.\n"; }
+    }
+}
+// =================================
 
 // Prototipos de funciones (definidas en otros archivos)
 void inicializarUsuariosDemo();
@@ -19,16 +52,16 @@ void mostrarResumenUltimoPedido();
 void listarPedidos();
 void listarUsuariosSimple();
 
+
 int main() {
     inicializarUsuariosDemo();
 
-    int opcion;
     bool salir = false;
 
     while (!salir) {
-        cout << "=====================================\n";
-        cout << "      MENU PRINCIPAL DEL SISTEMA     \n";
-        cout << "=====================================\n";
+        clearScreen();
+        header("MENU PRINCIPAL DEL SISTEMA");
+
         cout << "1. Registrar nuevo pedido (sin login)\n";
         cout << "2. Ver resumen del ultimo pedido\n";
         cout << "3. Vista Administrador (login)\n";
@@ -37,64 +70,76 @@ int main() {
         cout << "6. Vista Cliente (login)\n";
         cout << "7. Listar usuarios de prueba\n";
         cout << "0. Salir\n";
-        cout << "Seleccione una opcion: ";
-        cin >> opcion;
-        cin.ignore();
+
+        int opcion = readInt("\n Seleccione una opcion: ");
+        cout << " \n";
 
         if (opcion == 1) {
             string cliente, direccion, metodo;
             float peso;
+            cout << "---NUEVO PEDIDO---\n";
             cout << "Nombre cliente: "; getline(cin, cliente);
             cout << "Direccion: "; getline(cin, direccion);
-            cout << "Peso (libras): "; cin >> peso; cin.ignore();
+            cout << "Peso (libras): ";
+            {
+                string s; getline(cin, s);
+                try { peso = stof(s); } catch (...) { peso = 0; }
+            }
             cout << "Metodo de pago: "; getline(cin, metodo);
             int id = crearPedido(cliente, direccion, peso, metodo);
             cout << "Pedido creado con ID: " << id << "\n";
+            pauseEnter("Presione ENTER para volver al menu principal...");
             continue;
         } else if (opcion == 2) {
             mostrarResumenUltimoPedido();
+            pauseEnter("Presione ENTER para volver al menu principal...");
             continue;
         }
 
         switch (opcion) {
-            case 3: { // Admin
+            case 3: {
                 string u, p;
+                cout << "---LOGIN ADMIN---\n";
                 cout << "Usuario: "; getline(cin, u);
                 cout << "Contrasena: "; getline(cin, p);
                 string rol = autenticarYObtenerRol(u, p);
                 if (rol == "admin") menuAdmin(u);
-                else cout << "Credenciales invalidas o no es admin.\n";
+                else { cout << "Credenciales invalidas o no es admin.\n"; pauseEnter(); }
                 break;
             }
-            case 4: { // Controlador
+            case 4: {
+                cout << "---LOGIN CONTROLADOR---\n";
                 string u, p;
                 cout << "Usuario: "; getline(cin, u);
                 cout << "Contrasena: "; getline(cin, p);
                 string rol = autenticarYObtenerRol(u, p);
                 if (rol == "controlador") menuControlador(u);
-                else cout << "Credenciales invalidas o no es controlador.\n";
+                else { cout << "Credenciales invalidas o no es controlador.\n"; pauseEnter(); }
                 break;
             }
-            case 5: { // Piloto
+            case 5: {
+                cout << "---LOGIN PILOTO---\n";
                 string u, p;
                 cout << "Usuario: "; getline(cin, u);
                 cout << "Contrasena: "; getline(cin, p);
                 string rol = autenticarYObtenerRol(u, p);
                 if (rol == "piloto") menuPiloto(u);
-                else cout << "Credenciales invalidas o no es piloto.\n";
+                else { cout << "Credenciales invalidas o no es piloto.\n"; pauseEnter(); }
                 break;
             }
-            case 6: { // Cliente
+            case 6: {
                 string u, p;
+                cout << "---LOGIN CLIENTE---\n";
                 cout << "Usuario: "; getline(cin, u);
                 cout << "Contrasena: "; getline(cin, p);
                 string rol = autenticarYObtenerRol(u, p);
                 if (rol == "cliente") menuCliente(u);
-                else cout << "Credenciales invalidas o no es cliente.\n";
+                else { cout << "Credenciales invalidas o no es cliente.\n"; pauseEnter(); }
                 break;
             }
             case 7:
                 listarUsuariosSimple();
+                pauseEnter();
                 break;
             case 0:
                 salir = true;
@@ -102,6 +147,7 @@ int main() {
                 break;
             default:
                 cout << "Opcion invalida.\n";
+                pauseEnter();
         }
     }
 
